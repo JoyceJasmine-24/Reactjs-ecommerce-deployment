@@ -1,0 +1,9 @@
+services:
+  trendify-app:
+    build: .
+    container_name: trendify-app
+
+    ports:
+      - "80:80"
+
+    restart: always
