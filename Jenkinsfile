@@ -2,8 +2,9 @@ pipeline {
     agent any
 
     environment {
-        IMAGE_NAME = "jasmine2324/joycejasmine24-dev"
-        IMAGE_TAG = "v1"
+        DEV_IMAGE  = "jasmine2324/joycejasmine24-dev"
+        PROD_IMAGE = "jasmine2324/joycejasmine24-prod"
+        IMAGE_TAG  = "v1"
     }
 
     stages {
@@ -11,14 +12,24 @@ pipeline {
         stage('Checkout') {
             steps {
                 git branch: 'dev',
-                credentialsId: 'github-creds',
                 url: 'https://github.com/JoyceJasmine-24/Reactjs-ecommerce-deployment.git'
             }
         }
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t $IMAGE_NAME:$IMAGE_TAG .'
+                script {
+                    def branch = sh(
+                        script: 'git rev-parse --abbrev-ref HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    if (branch == "master") {
+                        sh "docker build -t ${PROD_IMAGE}:${IMAGE_TAG} ."
+                    } else {
+                        sh "docker build -t ${DEV_IMAGE}:${IMAGE_TAG} ."
+                    }
+                }
             }
         }
 
@@ -38,20 +49,30 @@ pipeline {
             }
         }
 
-        stage('Push Image') {
+        stage('Push Docker Image') {
             steps {
-                sh 'docker push $IMAGE_NAME:$IMAGE_TAG'
+                script {
+                    def branch = sh(
+                        script: 'git rev-parse --abbrev-ref HEAD',
+                        returnStdout: true
+                    ).trim()
+
+                    if (branch == "master") {
+                        sh "docker push ${PROD_IMAGE}:${IMAGE_TAG}"
+                    } else {
+                        sh "docker push ${DEV_IMAGE}:${IMAGE_TAG}"
+                    }
+                }
             }
         }
     }
 
     post {
         success {
-            echo 'Pipeline completed successfully!'
+            echo 'Pipeline executed successfully.'
         }
-
         failure {
-            echo 'Pipeline failed!'
+            echo 'Pipeline execution failed.'
         }
     }
 }
